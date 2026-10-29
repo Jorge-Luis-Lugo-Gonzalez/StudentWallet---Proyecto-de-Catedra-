@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="navy_dark">#021468</color>
+    <color name="navy_primary">#08207A</color>
+    <color name="blue_primary">#0052CC</color>
+    <color name="blue_accent">#1A66FF</color>
+    <color name="blue_light_bg">#E8F0FE</color>
+    <color name="periwinkle_card">#A5B0D6</color>
+    <color name="periwinkle_text">#B0BCE2</color>
+
+    <color name="bg_screen">#F5F7FB</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="bg_input_gray">#DFE3EC</color>
+    <color name="bg_field_soft">#F3F5FA</color>
+    <color name="border_gray">#D0D6E2</color>
+
+    <color name="text_primary">#0D1B4C</color>
+    <color name="text_dark">#1A1F36</color>
+    <color name="text_secondary">#5E677D</color>
+    <color name="text_hint">#8A93A6</color>
+
+    <color name="green_income">#388E3C</color>
+    <color name="green_soft_bg">#E8F3EB</color>
+
+    <color name="red_expense">#C62828</color>
+    <color name="red_error">#B71C1C</color>
+    <color name="red_soft_bg">#FDECEC</color>
+    <color name="red_border">#E57373</color>
+
+    <color name="warning_bg">#ECEFF8</color>
+    <color name="warning_accent">#1A3380</color>
+
+    <color name="chart_blue">#0B63F6</color>
+    <color name="chart_light_blue">#B3CCFF</color>
+    <color name="chart_navy">#08207A</color>
+    <color name="chart_red">#B71C1C</color>
+    <color name="chart_gray">#E0E3EB</color>
+</resources>
