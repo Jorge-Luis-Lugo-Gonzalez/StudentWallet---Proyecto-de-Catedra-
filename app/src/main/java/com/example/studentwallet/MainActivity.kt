@@ -44,16 +44,33 @@ class MainActivity : AppCompatActivity() {
         bottomNav = findViewById(R.id.bottomNav)
 
         if (savedInstanceState == null) {
-            loadFragment(MovementsFragment())
-            bottomNav.selectedItemId = R.id.nav_movements
+            loadFragment(HomeFragment())
         }
 
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_home, R.id.nav_movements -> {
+                R.id.nav_home -> {
+                    tvToolbarTitle.text = "Student Wallet"
+                    fabMain.visibility = View.VISIBLE
+                    loadFragment(HomeFragment())
+                    true
+                }
+                R.id.nav_movements -> {
                     tvToolbarTitle.text = "Student Wallet"
                     fabMain.visibility = View.VISIBLE
                     loadFragment(MovementsFragment())
+                    true
+                }
+                R.id.nav_budgets -> {
+                    tvToolbarTitle.text = "Student Wallet"
+                    fabMain.visibility = View.VISIBLE
+                    loadFragment(BudgetsFragment())
+                    true
+                }
+                R.id.nav_news -> {
+                    tvToolbarTitle.text = "Student Wallet"
+                    fabMain.visibility = View.GONE
+                    loadFragment(NewsFragment())
                     true
                 }
                 R.id.nav_profile -> {
@@ -62,17 +79,17 @@ class MainActivity : AppCompatActivity() {
                     loadFragment(ProfileFragment())
                     true
                 }
-                else -> {
-                    tvToolbarTitle.text = "Student Wallet"
-                    fabMain.visibility = View.VISIBLE
-                    loadFragment(MovementsFragment())
-                    true
-                }
+                else -> false
             }
         }
 
         fabMain.setOnClickListener {
-            startActivity(Intent(this, AddTransactionActivity::class.java))
+            val currentFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
+            if (currentFragment is BudgetsFragment) {
+                currentFragment.showBudgetFormDialog(null)
+            } else {
+                startActivity(Intent(this, AddTransactionActivity::class.java))
+            }
         }
 
         ivAvatar.setOnClickListener {
@@ -81,16 +98,18 @@ class MainActivity : AppCompatActivity() {
 
         btnMenu.setOnClickListener { anchor ->
             val popup = PopupMenu(this, anchor)
-            popup.menu.add(0, 1, 0, "Agregar Movimiento")
-            popup.menu.add(0, 2, 1, "Historial de Movimientos")
-            popup.menu.add(0, 3, 2, "Perfil de Usuario")
-            popup.menu.add(0, 4, 3, "Cerrar Sesión")
+            popup.menu.add(0, 1, 0, "Metas de Ahorro")
+            popup.menu.add(0, 2, 1, "Agregar Movimiento")
+            popup.menu.add(0, 3, 2, "Presupuestos")
+            popup.menu.add(0, 4, 3, "Noticias Académicas")
+            popup.menu.add(0, 5, 4, "Cerrar Sesión")
             popup.setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {
-                    1 -> startActivity(Intent(this, AddTransactionActivity::class.java))
-                    2 -> navigateToTab(R.id.nav_movements)
-                    3 -> navigateToTab(R.id.nav_profile)
-                    4 -> {
+                    1 -> startActivity(Intent(this, GoalsActivity::class.java))
+                    2 -> startActivity(Intent(this, AddTransactionActivity::class.java))
+                    3 -> navigateToTab(R.id.nav_budgets)
+                    4 -> navigateToTab(R.id.nav_news)
+                    5 -> {
                         session.clearSession()
                         val intent = Intent(this, LoginActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
