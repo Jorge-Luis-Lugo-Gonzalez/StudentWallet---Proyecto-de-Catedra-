@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Categoría"
+        android:textColor="@color/text_dark"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/bg_field_soft"
+        android:paddingHorizontal="10dp">
+
+        <Spinner
+            android:id="@+id/spBudgetCategory"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Monto límite mensual"
+        android:textColor="@color/text_dark"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/etBudgetLimit"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/bg_field_soft"
+        android:hint="Ej. 150.00"
+        android:inputType="numberDecimal"
+        android:paddingHorizontal="14dp"
+        android:textColor="@color/text_dark"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/tvBudgetFormError"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="Ingresa un monto mayor a 0"
+        android:textColor="@color/red_error"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+</LinearLayout>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/cardBudgetContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="14dp"
+    android:background="@drawable/bg_card_rounded"
+    android:elevation="1dp"
+    android:orientation="vertical"
+    android:padding="18dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:id="@+id/flBudgetIconBg"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_circle_soft_blue">
+
+            <ImageView
+                android:id="@+id/ivBudgetIcon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_cat_food" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tvBudgetCategory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="Alimentación"
+            android:textColor="@color/text_dark"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvBudgetBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_field_soft"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:text="80%"
+            android:textColor="@color/text_dark"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="bottom"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvBudgetSpent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$120"
+            android:textColor="@color/text_dark"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvBudgetLimit"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:text="/ $150"
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvBudgetRemaining"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Quedan $30"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/pbBudgetCard"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="10dp"
+        android:layout_marginTop="12dp"
+        android:max="100"
+        android:progress="80"
+        android:progressDrawable="@drawable/progress_budget_blue" />
+
+</LinearLayout>
