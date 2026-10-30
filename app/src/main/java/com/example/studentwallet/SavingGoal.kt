@@ -1,8 +1,8 @@
 package com.example.studentwallet
 
 data class SavingGoal(
-    val id: Long = 0,
-    val userId: Long,
+    val id: String = "",
+    val userId: String,
     val name: String,
     val targetAmount: Double,
     val savedAmount: Double,

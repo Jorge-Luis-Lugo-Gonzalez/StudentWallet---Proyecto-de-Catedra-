@@ -18,8 +18,6 @@ import androidx.recyclerview.widget.RecyclerView
 
 class BudgetsFragment : Fragment() {
 
-    private lateinit var dbHelper: WalletDatabaseHelper
-    private lateinit var session: SessionManager
     private lateinit var adapter: BudgetAdapter
     private lateinit var tvTotalAssigned: TextView
 
@@ -29,9 +27,6 @@ class BudgetsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_budgets, container, false)
-
-        dbHelper = WalletDatabaseHelper(requireContext())
-        session = SessionManager(requireContext())
 
         tvTotalAssigned = view.findViewById(R.id.tvTotalBudgetAssigned)
         val btnOpenGoals = view.findViewById<LinearLayout>(R.id.btnOpenSavingsGoals)
@@ -57,16 +52,19 @@ class BudgetsFragment : Fragment() {
 
     fun refreshBudgets() {
         if (!isAdded) return
-        val userId = session.getUserId()
-        val user = dbHelper.getUserById(userId)
-        val currency = user?.currency ?: "USD ($)"
-        val symbol = CategoryConfig.getCurrencySymbol(currency)
-
-        val budgets = dbHelper.getBudgetsWithSpent(userId)
-        val totalAssigned = budgets.sumOf { it.limitAmount }
-        tvTotalAssigned.text = CategoryConfig.formatMoney(totalAssigned, currency)
-
-        adapter.updateData(budgets, symbol)
+        FirebaseRepository.loadDashboard { result ->
+            if (!isAdded) return@loadDashboard
+            result.onSuccess { data ->
+                val currency = data.currency
+                val symbol = CategoryConfig.getCurrencySymbol(currency)
+                val budgets = data.budgets
+                val totalAssigned = budgets.sumOf { it.limitAmount }
+                tvTotalAssigned.text = CategoryConfig.formatMoney(totalAssigned, currency)
+                adapter.updateData(budgets, symbol)
+            }.onFailure { error ->
+                Toast.makeText(requireContext(), error.message ?: "No se pudieron cargar los presupuestos", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     fun showBudgetFormDialog(existing: BudgetItem? = null) {
@@ -99,9 +97,15 @@ class BudgetsFragment : Fragment() {
 
         if (existing != null) {
             builder.setNeutralButton("Eliminar") { _, _ ->
-                dbHelper.deleteBudget(existing.id)
-                Toast.makeText(requireContext(), "Presupuesto eliminado", Toast.LENGTH_SHORT).show()
-                refreshBudgets()
+                FirebaseRepository.deleteBudget(existing.id) { result ->
+                    if (!isAdded) return@deleteBudget
+                    result.onSuccess {
+                        Toast.makeText(requireContext(), "Presupuesto eliminado", Toast.LENGTH_SHORT).show()
+                        refreshBudgets()
+                    }.onFailure { error ->
+                        Toast.makeText(requireContext(), error.message ?: "No se pudo eliminar", Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         }
 
@@ -117,10 +121,19 @@ class BudgetsFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            dbHelper.saveOrUpdateBudget(session.getUserId(), category, limit)
-            Toast.makeText(requireContext(), "Presupuesto guardado", Toast.LENGTH_SHORT).show()
-            dialog.dismiss()
-            refreshBudgets()
+            val saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            saveButton.isEnabled = false
+            FirebaseRepository.saveOrUpdateBudget(category, limit) { result ->
+                if (!isAdded) return@saveOrUpdateBudget
+                saveButton.isEnabled = true
+                result.onSuccess {
+                    Toast.makeText(requireContext(), "Presupuesto guardado", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                    refreshBudgets()
+                }.onFailure { error ->
+                    Toast.makeText(requireContext(), error.message ?: "No se pudo guardar", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 }

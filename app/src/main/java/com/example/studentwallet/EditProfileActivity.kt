@@ -18,10 +18,6 @@ class EditProfileActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_edit_profile)
 
-        val dbHelper = WalletDatabaseHelper(this)
-        val session = SessionManager(this)
-        val userId = session.getUserId()
-
         val btnBack = findViewById<ImageButton>(R.id.btnBackEditProfile)
         val flChangePhoto = findViewById<FrameLayout>(R.id.flChangePhoto)
         val etName = findViewById<EditText>(R.id.etEditName)
@@ -41,8 +37,8 @@ class EditProfileActivity : AppCompatActivity() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spCurrency.adapter = adapter
 
-        val currentUser = dbHelper.getUserById(userId)
-        if (currentUser != null) {
+        FirebaseRepository.getUser { currentUser ->
+            if (currentUser == null || isFinishing) return@getUser
             etName.setText(currentUser.fullName)
             etCareer.setText(currentUser.career)
             etUniversity.setText(currentUser.university)
@@ -70,9 +66,16 @@ class EditProfileActivity : AppCompatActivity() {
             }
             tvError.visibility = View.GONE
 
-            dbHelper.updateUserProfile(userId, name, career, university, currency)
-            Toast.makeText(this, "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
-            finish()
+            btnSave.isEnabled = false
+            FirebaseRepository.updateUserProfile(name, career, university, currency) { result ->
+                btnSave.isEnabled = true
+                result.onSuccess {
+                    Toast.makeText(this, "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
+                    finish()
+                }.onFailure { error ->
+                    Toast.makeText(this, error.message ?: "No se pudo actualizar el perfil", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 }

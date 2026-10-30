@@ -27,9 +27,6 @@ class RegisterActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
-        val dbHelper = WalletDatabaseHelper(this)
-        val session = SessionManager(this)
-
         val lblName = findViewById<TextView>(R.id.lblRegName)
         val boxName = findViewById<LinearLayout>(R.id.boxRegName)
         val etName = findViewById<EditText>(R.id.etRegName)
@@ -123,14 +120,11 @@ class RegisterActivity : AppCompatActivity() {
             if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                 setFieldError(lblEmail, boxEmail, iconErrEmail, tvErrEmail, "Correo inválido")
                 hasError = true
-            } else if (dbHelper.isEmailRegistered(email)) {
-                setFieldError(lblEmail, boxEmail, iconErrEmail, tvErrEmail, "Este correo ya está registrado")
-                hasError = true
             }
 
-            if (pass.length < 4) {
+            if (pass.length < 6) {
                 setFieldError(lblPassword, boxPassword, null, null, "")
-                setFieldError(lblConfirm, boxConfirm, null, tvErrPassword, "La contraseña debe tener al menos 4 caracteres")
+                setFieldError(lblConfirm, boxConfirm, null, tvErrPassword, "La contraseña debe tener al menos 6 caracteres")
                 hasError = true
             } else if (pass != confirm) {
                 setFieldError(lblPassword, boxPassword, null, null, "")
@@ -148,20 +142,35 @@ class RegisterActivity : AppCompatActivity() {
             val newUser = User(
                 fullName = name,
                 email = email,
-                password = pass,
                 career = career,
                 university = uni,
                 currency = currency
             )
-            val newId = dbHelper.registerUser(newUser)
-            if (newId > 0) {
-                session.saveSession(newId, email)
-                Toast.makeText(this, "Cuenta creada exitosamente", Toast.LENGTH_SHORT).show()
-                val intent = Intent(this, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
-            } else {
-                Toast.makeText(this, "No se pudo registrar la cuenta", Toast.LENGTH_SHORT).show()
+
+            val originalText = btnCreate.text
+            btnCreate.isEnabled = false
+            btnCreate.text = "Creando cuenta..."
+
+            FirebaseRepository.register(newUser, pass) { result ->
+                btnCreate.isEnabled = true
+                btnCreate.text = originalText
+
+                result.onSuccess {
+                    Toast.makeText(this, "Cuenta creada exitosamente", Toast.LENGTH_SHORT).show()
+                    val intent = Intent(this, MainActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                }.onFailure { error ->
+                    val message = error.message ?: "No se pudo registrar la cuenta"
+                    if (message.contains("correo", ignoreCase = true)) {
+                        setFieldError(lblEmail, boxEmail, iconErrEmail, tvErrEmail, message)
+                    } else if (message.contains("contraseña", ignoreCase = true)) {
+                        setFieldError(lblPassword, boxPassword, null, null, "")
+                        setFieldError(lblConfirm, boxConfirm, null, tvErrPassword, message)
+                    } else {
+                        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         }
     }

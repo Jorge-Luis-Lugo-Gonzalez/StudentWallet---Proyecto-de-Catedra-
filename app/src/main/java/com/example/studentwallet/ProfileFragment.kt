@@ -15,7 +15,6 @@ import androidx.fragment.app.Fragment
 
 class ProfileFragment : Fragment() {
 
-    private lateinit var dbHelper: WalletDatabaseHelper
     private lateinit var session: SessionManager
 
     private lateinit var tvName: TextView
@@ -32,7 +31,6 @@ class ProfileFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_profile, container, false)
 
-        dbHelper = WalletDatabaseHelper(requireContext())
         session = SessionManager(requireContext())
 
         tvName = view.findViewById(R.id.tvProfileName)
@@ -90,13 +88,15 @@ class ProfileFragment : Fragment() {
     }
 
     private fun loadUserData() {
-        val user = dbHelper.getUserById(session.getUserId()) ?: return
-        tvName.text = user.fullName
-        tvEmail.text = user.email
-        tvCareer.text = user.career
-        tvUniversity.text = user.university
-        tvCurrency.text = user.currency
-        tvCurrencyShort.text = user.currency.take(3)
+        FirebaseRepository.getUser { user ->
+            if (!isAdded || user == null) return@getUser
+            tvName.text = user.fullName
+            tvEmail.text = user.email
+            tvCareer.text = user.career
+            tvUniversity.text = user.university
+            tvCurrency.text = user.currency
+            tvCurrencyShort.text = user.currency.take(3)
+        }
     }
 
     private fun showChangePasswordDialog() {
@@ -113,15 +113,21 @@ class ProfileFragment : Fragment() {
                 val p1 = etNew.text.toString()
                 val p2 = etConfirm.text.toString()
                 when {
-                    p1.length < 4 -> {
-                        Toast.makeText(requireContext(), "La contraseña debe tener al menos 4 caracteres", Toast.LENGTH_SHORT).show()
+                    p1.length < 6 -> {
+                        Toast.makeText(requireContext(), "La contraseña debe tener al menos 6 caracteres", Toast.LENGTH_SHORT).show()
                     }
                     p1 != p2 -> {
                         Toast.makeText(requireContext(), "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
                     }
                     else -> {
-                        dbHelper.updateUserPassword(session.getUserId(), p1)
-                        Toast.makeText(requireContext(), "Contraseña actualizada", Toast.LENGTH_SHORT).show()
+                        val appContext = requireContext().applicationContext
+                        FirebaseRepository.updatePassword(p1) { result ->
+                            val message = result.fold(
+                                onSuccess = { "Contraseña actualizada" },
+                                onFailure = { it.message ?: "No se pudo actualizar la contraseña" }
+                            )
+                            Toast.makeText(appContext, message, Toast.LENGTH_LONG).show()
+                        }
                     }
                 }
             }
@@ -138,9 +144,15 @@ class ProfileFragment : Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle("Seleccionar moneda principal")
             .setItems(currencies) { _, which ->
-                dbHelper.updateUserCurrency(session.getUserId(), currencies[which])
-                loadUserData()
-                Toast.makeText(requireContext(), "Moneda actualizada a ${currencies[which]}", Toast.LENGTH_SHORT).show()
+                FirebaseRepository.updateUserCurrency(currencies[which]) { result ->
+                    if (!isAdded) return@updateUserCurrency
+                    result.onSuccess {
+                        loadUserData()
+                        Toast.makeText(requireContext(), "Moneda actualizada a ${currencies[which]}", Toast.LENGTH_SHORT).show()
+                    }.onFailure { error ->
+                        Toast.makeText(requireContext(), error.message ?: "No se pudo actualizar la moneda", Toast.LENGTH_LONG).show()
+                    }
+                }
             }
             .show()
     }

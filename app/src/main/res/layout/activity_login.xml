@@ -95,7 +95,6 @@
                     android:hint="alumno@universidad.edu"
                     android:inputType="textEmailAddress"
                     android:paddingHorizontal="10dp"
-                    android:text="alumno@universidad.edu"
                     android:textColor="@color/text_dark"
                     android:textColorHint="@color/text_hint"
                     android:textSize="16sp" />
@@ -148,7 +147,6 @@
                     android:hint="••••••••"
                     android:inputType="textPassword"
                     android:paddingHorizontal="10dp"
-                    android:text="123456"
                     android:textColor="@color/text_dark"
                     android:textColorHint="@color/text_hint"
                     android:textSize="16sp" />

@@ -25,7 +25,7 @@ class AddTransactionActivity : AppCompatActivity() {
     private var selectedPayment = "Tarjeta"
     private var selectedDateText = "14 Ago"
     private var selectedMonthGroup = "Agosto 2026"
-    private var editingTransactionId = -1L
+    private var editingTransactionId = ""
 
     private val categoryViews = mutableMapOf<String, LinearLayout>()
 
@@ -33,7 +33,6 @@ class AddTransactionActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_transaction)
 
-        val dbHelper = WalletDatabaseHelper(this)
         val session = SessionManager(this)
         val userId = session.getUserId()
 
@@ -59,11 +58,12 @@ class AddTransactionActivity : AppCompatActivity() {
             selectedType = "INGRESO"
         }
 
-        editingTransactionId = intent.getLongExtra("EXTRA_TRANSACTION_ID", -1L)
-        if (editingTransactionId != -1L) {
-            val existing = dbHelper.getTransactionById(editingTransactionId)
-            if (existing != null) {
-                tvTitle.text = "Editar Movimiento"
+        editingTransactionId = intent.getStringExtra("EXTRA_TRANSACTION_ID") ?: ""
+        if (editingTransactionId.isNotEmpty()) {
+            tvTitle.text = "Editar Movimiento"
+            btnSave.text = "Guardar cambios"
+            FirebaseRepository.getTransactionById(editingTransactionId) { existing ->
+                if (existing == null || isFinishing) return@getTransactionById
                 selectedType = existing.type
                 selectedCategory = if (existing.category in CategoryConfig.expenseCategories) {
                     existing.category
@@ -76,7 +76,9 @@ class AddTransactionActivity : AppCompatActivity() {
                 etAmount.setText(String.format("%.2f", existing.amount))
                 etDescription.setText(existing.description)
                 tvSelectedDate.text = existing.date
-                btnSave.text = "Guardar cambios"
+                updateTypeToggleUI(tvToggleExpense, tvToggleIncome)
+                updateCategorySelectionUI()
+                updatePaymentSelectionUI(btnPayCash, btnPayCard, btnPayTransfer)
             }
         }
 
@@ -153,7 +155,7 @@ class AddTransactionActivity : AppCompatActivity() {
             val finalTitle = if (desc.isNotEmpty()) desc else finalCategory
 
             val item = TransactionItem(
-                id = if (editingTransactionId != -1L) editingTransactionId else 0L,
+                id = editingTransactionId,
                 userId = userId,
                 title = finalTitle,
                 amount = amount,
@@ -165,14 +167,17 @@ class AddTransactionActivity : AppCompatActivity() {
                 description = desc.ifEmpty { finalTitle }
             )
 
-            if (editingTransactionId != -1L) {
-                dbHelper.updateTransaction(item)
-                Toast.makeText(this, "Movimiento actualizado", Toast.LENGTH_SHORT).show()
-            } else {
-                dbHelper.insertTransaction(item)
-                Toast.makeText(this, "Movimiento guardado", Toast.LENGTH_SHORT).show()
+            btnSave.isEnabled = false
+            FirebaseRepository.saveTransaction(item) { result ->
+                btnSave.isEnabled = true
+                result.onSuccess {
+                    val message = if (editingTransactionId.isNotEmpty()) "Movimiento actualizado" else "Movimiento guardado"
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                    finish()
+                }.onFailure { error ->
+                    Toast.makeText(this, error.message ?: "No se pudo guardar el movimiento", Toast.LENGTH_LONG).show()
+                }
             }
-            finish()
         }
     }
 

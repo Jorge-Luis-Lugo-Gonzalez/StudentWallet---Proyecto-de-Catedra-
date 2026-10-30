@@ -12,12 +12,12 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 
 class HomeFragment : Fragment() {
 
-    private lateinit var dbHelper: WalletDatabaseHelper
     private lateinit var session: SessionManager
 
     private lateinit var tvGreeting: TextView
@@ -36,7 +36,6 @@ class HomeFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_home, container, false)
 
-        dbHelper = WalletDatabaseHelper(requireContext())
         session = SessionManager(requireContext())
 
         tvGreeting = view.findViewById(R.id.tvGreeting)
@@ -87,28 +86,38 @@ class HomeFragment : Fragment() {
     }
 
     private fun refreshDashboard() {
-        val userId = session.getUserId()
-        val user = dbHelper.getUserById(userId)
-        val currency = user?.currency ?: "USD ($)"
+        FirebaseRepository.loadDashboard { result ->
+            if (!isAdded) return@loadDashboard
+            result.onSuccess { data ->
+                renderDashboard(data)
+            }.onFailure { error ->
+                Toast.makeText(requireContext(), error.message ?: "No se pudo cargar el resumen", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun renderDashboard(data: FirebaseRepository.DashboardData) {
+        val user = data.user
+        val currency = data.currency
         val symbol = CategoryConfig.getCurrencySymbol(currency)
 
-        val firstName = user?.fullName?.split(" ")?.firstOrNull() ?: "Carlos"
+        val firstName = user?.fullName?.split(" ")?.firstOrNull()?.takeIf { it.isNotBlank() } ?: "estudiante"
         tvGreeting.text = "Hola, $firstName 👋"
 
-        val totalIncome = dbHelper.getTotalIncome(userId)
-        val totalExpense = dbHelper.getTotalExpense(userId)
+        val totalIncome = data.totalIncome
+        val totalExpense = data.totalExpense
         val available = totalIncome - totalExpense
 
         tvAvailableBalance.text = CategoryConfig.formatMoney(available, currency)
         tvTotalIncome.text = "+${CategoryConfig.formatMoney(totalIncome, currency)}"
         tvTotalExpense.text = "-${CategoryConfig.formatMoney(totalExpense, currency)}"
 
-        val budgets = dbHelper.getBudgetsWithSpent(userId)
+        val budgets = data.budgets
         populateAlerts(budgets)
-        populateRecentMovements(userId, currency)
+        populateRecentMovements(data.transactions, currency)
         populateBudgetsSummary(budgets, symbol)
 
-        val expensesByCategory = dbHelper.getExpensesByCategory(userId)
+        val expensesByCategory = data.expensesByCategory
         donutChart.setData(
             expensesByCategory.values.toList(),
             CategoryConfig.formatMoney(totalExpense, currency)
@@ -189,9 +198,9 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun populateRecentMovements(userId: Long, currency: String) {
+    private fun populateRecentMovements(transactions: List<TransactionItem>, currency: String) {
         llRecentMovements.removeAllViews()
-        val recent = dbHelper.getTransactions(userId).take(3)
+        val recent = transactions.take(3)
         val inflater = LayoutInflater.from(requireContext())
 
         for (item in recent) {

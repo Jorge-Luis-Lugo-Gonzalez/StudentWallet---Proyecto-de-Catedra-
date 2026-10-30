@@ -1,8 +1,8 @@
 package com.example.studentwallet
 
 data class BudgetItem(
-    val id: Long = 0,
-    val userId: Long,
+    val id: String = "",
+    val userId: String,
     val category: String,
     val limitAmount: Double,
     val spentAmount: Double = 0.0

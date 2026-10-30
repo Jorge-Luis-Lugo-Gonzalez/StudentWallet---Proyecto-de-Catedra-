@@ -17,7 +17,6 @@ import java.util.Calendar
 
 class GoalsActivity : AppCompatActivity() {
 
-    private lateinit var dbHelper: WalletDatabaseHelper
     private lateinit var session: SessionManager
     private lateinit var llGoalsContainer: LinearLayout
     private var selectedDate = "12/31/2026"
@@ -26,7 +25,6 @@ class GoalsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_goals)
 
-        dbHelper = WalletDatabaseHelper(this)
         session = SessionManager(this)
 
         val btnBack = findViewById<ImageButton>(R.id.btnBackGoals)
@@ -73,27 +71,38 @@ class GoalsActivity : AppCompatActivity() {
                 savedAmount = initial,
                 targetDate = selectedDate
             )
-            dbHelper.insertSavingGoal(goal)
-            Toast.makeText(this, "Meta de ahorro creada", Toast.LENGTH_SHORT).show()
-
-            etGoalName.setText("")
-            etGoalTarget.setText("")
-            etGoalInitial.setText("")
-            tvGoalTargetDate.text = "mm/dd/yyyy"
-
-            loadGoals()
+            btnSaveGoal.isEnabled = false
+            FirebaseRepository.insertSavingGoal(goal) { result ->
+                btnSaveGoal.isEnabled = true
+                result.onSuccess {
+                    Toast.makeText(this, "Meta de ahorro creada", Toast.LENGTH_SHORT).show()
+                    etGoalName.setText("")
+                    etGoalTarget.setText("")
+                    etGoalInitial.setText("")
+                    tvGoalTargetDate.text = "mm/dd/yyyy"
+                    loadGoals()
+                }.onFailure { error ->
+                    Toast.makeText(this, error.message ?: "No se pudo crear la meta", Toast.LENGTH_LONG).show()
+                }
+            }
         }
 
         loadGoals()
     }
 
     private fun loadGoals() {
-        llGoalsContainer.removeAllViews()
-        val userId = session.getUserId()
-        val user = dbHelper.getUserById(userId)
-        val symbol = CategoryConfig.getCurrencySymbol(user?.currency ?: "USD ($)")
-        val goals = dbHelper.getSavingGoals(userId)
+        FirebaseRepository.loadDashboard { result ->
+            if (isFinishing || isDestroyed) return@loadDashboard
+            result.onSuccess { data ->
+                renderGoals(data.goals, CategoryConfig.getCurrencySymbol(data.currency))
+            }.onFailure { error ->
+                Toast.makeText(this, error.message ?: "No se pudieron cargar las metas", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
+    private fun renderGoals(goals: List<SavingGoal>, symbol: String) {
+        llGoalsContainer.removeAllViews()
         val inflater = LayoutInflater.from(this)
         for (goal in goals) {
             val card = inflater.inflate(R.layout.item_saving_goal, llGoalsContainer, false)
@@ -140,8 +149,12 @@ class GoalsActivity : AppCompatActivity() {
                         .setMessage("Se eliminará la meta \"${goal.name}\".")
                         .setNegativeButton("Cancelar", null)
                         .setPositiveButton("Confirmar") { _, _ ->
-                            dbHelper.deleteSavingGoal(goal.id)
-                            loadGoals()
+                            FirebaseRepository.deleteSavingGoal(goal.id) { result ->
+                                result.onSuccess { loadGoals() }
+                                    .onFailure { error ->
+                                        Toast.makeText(this, error.message ?: "No se pudo eliminar", Toast.LENGTH_LONG).show()
+                                    }
+                            }
                         }
                         .show()
                 }
@@ -160,9 +173,14 @@ class GoalsActivity : AppCompatActivity() {
             .setPositiveButton("Abonar") { _, _ ->
                 val amount = etDeposit.text.toString().replace(",", ".").trim().toDoubleOrNull()
                 if (amount != null && amount > 0.0) {
-                    dbHelper.addDepositToGoal(goal.id, amount)
-                    Toast.makeText(this, "Abono registrado", Toast.LENGTH_SHORT).show()
-                    loadGoals()
+                    FirebaseRepository.addDepositToGoal(goal.id, amount) { result ->
+                        result.onSuccess {
+                            Toast.makeText(this, "Abono registrado", Toast.LENGTH_SHORT).show()
+                            loadGoals()
+                        }.onFailure { error ->
+                            Toast.makeText(this, error.message ?: "No se pudo registrar el abono", Toast.LENGTH_LONG).show()
+                        }
+                    }
                 } else {
                     Toast.makeText(this, "Ingresa un monto válido", Toast.LENGTH_SHORT).show()
                 }

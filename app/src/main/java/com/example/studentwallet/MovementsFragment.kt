@@ -18,11 +18,10 @@ import androidx.recyclerview.widget.RecyclerView
 
 class MovementsFragment : Fragment() {
 
-    private lateinit var dbHelper: WalletDatabaseHelper
-    private lateinit var session: SessionManager
     private lateinit var adapter: TransactionAdapter
 
     private var allTransactions: List<TransactionItem> = emptyList()
+    private var currency: String = FirebaseRepository.DEFAULT_CURRENCY
     private var searchQuery: String = ""
     private var filterDate: String = "Todas"
     private var filterCategory: String = "Todas"
@@ -43,9 +42,6 @@ class MovementsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_movements, container, false)
-
-        dbHelper = WalletDatabaseHelper(requireContext())
-        session = SessionManager(requireContext())
 
         etSearch = view.findViewById(R.id.etSearchMovements)
         chipDate = view.findViewById(R.id.chipFilterDate)
@@ -95,14 +91,19 @@ class MovementsFragment : Fragment() {
     }
 
     private fun loadData() {
-        val userId = session.getUserId()
-        allTransactions = dbHelper.getTransactions(userId)
-        applyFilters()
+        FirebaseRepository.loadDashboard { result ->
+            if (!isAdded) return@loadDashboard
+            result.onSuccess { data ->
+                allTransactions = data.transactions
+                currency = data.currency
+                applyFilters()
+            }.onFailure { error ->
+                Toast.makeText(requireContext(), error.message ?: "No se pudieron cargar los movimientos", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun applyFilters() {
-        val user = dbHelper.getUserById(session.getUserId())
-        val currency = user?.currency ?: "USD ($)"
 
         var filtered = allTransactions.filter { item ->
             val matchesQuery = searchQuery.isEmpty() ||
@@ -235,9 +236,15 @@ class MovementsFragment : Fragment() {
             .setMessage("Se eliminará \"${item.title}\" y se actualizará el saldo disponible.")
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Confirmar") { _, _ ->
-                dbHelper.deleteTransaction(item.id)
-                Toast.makeText(requireContext(), "Movimiento eliminado", Toast.LENGTH_SHORT).show()
-                loadData()
+                FirebaseRepository.deleteTransaction(item.id) { result ->
+                    if (!isAdded) return@deleteTransaction
+                    result.onSuccess {
+                        Toast.makeText(requireContext(), "Movimiento eliminado", Toast.LENGTH_SHORT).show()
+                        loadData()
+                    }.onFailure { error ->
+                        Toast.makeText(requireContext(), error.message ?: "No se pudo eliminar", Toast.LENGTH_LONG).show()
+                    }
+                }
             }
             .show()
     }
