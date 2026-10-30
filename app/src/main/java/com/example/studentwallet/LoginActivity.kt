@@ -23,8 +23,12 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        val dbHelper = WalletDatabaseHelper(this)
         val session = SessionManager(this)
+        if (session.isLoggedIn()) {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+            return
+        }
 
         val etEmail = findViewById<EditText>(R.id.etLoginEmail)
         val etPassword = findViewById<EditText>(R.id.etLoginPassword)
@@ -50,11 +54,26 @@ class LoginActivity : AppCompatActivity() {
         }
 
         tvForgot.setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("Recuperar contraseña")
-                .setMessage("Ingresa con la cuenta de prueba alumno@universidad.edu (contraseña: 123456) o registra una nueva cuenta institucional.")
-                .setPositiveButton("Entendido", null)
-                .show()
+            val email = etEmail.text.toString().trim()
+            if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                AlertDialog.Builder(this)
+                    .setTitle("Recuperar contraseña")
+                    .setMessage("Escribe tu correo en el campo de correo y vuelve a tocar \"¿Olvidaste tu contraseña?\" para recibir el enlace de recuperación.")
+                    .setPositiveButton("Entendido", null)
+                    .show()
+                return@setOnClickListener
+            }
+            FirebaseRepository.sendPasswordReset(email) { result ->
+                val message = result.fold(
+                    onSuccess = { "Te enviamos un correo a $email para restablecer tu contraseña." },
+                    onFailure = { it.message ?: "No se pudo enviar el correo" }
+                )
+                AlertDialog.Builder(this)
+                    .setTitle("Recuperar contraseña")
+                    .setMessage(message)
+                    .setPositiveButton("Entendido", null)
+                    .show()
+            }
         }
 
         tvGoRegister.setOnClickListener {
@@ -87,17 +106,26 @@ class LoginActivity : AppCompatActivity() {
 
             if (!valid) return@setOnClickListener
 
-            val user = dbHelper.authenticateUser(email, password)
-            if (user != null) {
-                session.saveSession(user.id, user.email)
-                Toast.makeText(this, "Bienvenido, ${user.fullName}", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this, MainActivity::class.java))
-                finish()
-            } else {
-                tvLoginError.text = "Correo o contraseña incorrectos"
-                tvLoginError.visibility = View.VISIBLE
-                lineEmail.setBackgroundColor(Color.parseColor("#B71C1C"))
-                linePassword.setBackgroundColor(Color.parseColor("#B71C1C"))
+            btnLogin.isEnabled = false
+            btnLogin.text = "Ingresando..."
+
+            FirebaseRepository.login(email, password) { result ->
+                btnLogin.isEnabled = true
+                btnLogin.text = "Iniciar sesión  →"
+
+                result.onSuccess {
+                    FirebaseRepository.getUser { user ->
+                        val name = user?.fullName?.split(" ")?.firstOrNull() ?: email
+                        Toast.makeText(applicationContext, "Bienvenido, $name", Toast.LENGTH_SHORT).show()
+                    }
+                    startActivity(Intent(this, MainActivity::class.java))
+                    finish()
+                }.onFailure { error ->
+                    tvLoginError.text = error.message ?: "Correo o contraseña incorrectos"
+                    tvLoginError.visibility = View.VISIBLE
+                    lineEmail.setBackgroundColor(Color.parseColor("#B71C1C"))
+                    linePassword.setBackgroundColor(Color.parseColor("#B71C1C"))
+                }
             }
         }
     }

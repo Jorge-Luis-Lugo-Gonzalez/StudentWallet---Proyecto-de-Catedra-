@@ -34,7 +34,9 @@ class MainActivity : AppCompatActivity() {
 
         val session = SessionManager(this)
         if (!session.isLoggedIn()) {
-            session.saveSession(1L, "alumno@universidad.edu")
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+            return
         }
 
         val btnMenu = findViewById<ImageButton>(R.id.btnMenu)
