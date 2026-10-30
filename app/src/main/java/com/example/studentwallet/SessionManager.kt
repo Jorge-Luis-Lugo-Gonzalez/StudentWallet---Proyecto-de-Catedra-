@@ -1,22 +1,22 @@
 package com.example.studentwallet
 
 import android.content.Context
+import com.google.firebase.auth.FirebaseAuth
 
+/**
+ * La sesión ahora la maneja Firebase Authentication.
+ * SharedPreferences solo guarda preferencias locales (notificaciones).
+ */
 class SessionManager(context: Context) {
 
     private val prefs = context.getSharedPreferences("student_wallet_prefs", Context.MODE_PRIVATE)
+    private val auth = FirebaseAuth.getInstance()
 
-    fun saveSession(userId: Long, email: String) {
-        prefs.edit()
-            .putLong("user_id", userId)
-            .putString("user_email", email)
-            .putBoolean("is_logged_in", true)
-            .apply()
-    }
+    fun getUserId(): String = auth.currentUser?.uid ?: ""
 
-    fun getUserId(): Long = prefs.getLong("user_id", 1L)
+    fun getUserEmail(): String = auth.currentUser?.email ?: ""
 
-    fun isLoggedIn(): Boolean = prefs.getBoolean("is_logged_in", false)
+    fun isLoggedIn(): Boolean = auth.currentUser != null
 
     fun areNotificationsEnabled(): Boolean = prefs.getBoolean("notifications_enabled", true)
 
@@ -25,10 +25,6 @@ class SessionManager(context: Context) {
     }
 
     fun clearSession() {
-        prefs.edit()
-            .remove("user_id")
-            .remove("user_email")
-            .putBoolean("is_logged_in", false)
-            .apply()
+        auth.signOut()
     }
 }

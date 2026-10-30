@@ -1,8 +1,8 @@
 package com.example.studentwallet
 
 data class TransactionItem(
-    val id: Long = 0,
-    val userId: Long,
+    val id: String = "",
+    val userId: String,
     val title: String,
     val amount: Double,
     val type: String,
